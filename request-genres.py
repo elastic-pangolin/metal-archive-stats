@@ -1,17 +1,23 @@
 import requests
-import json
+#import json
 import urllib3
 import math
 import time
+import re
 
 # observed from using the website
-coarse_genres = {"black"} # TODO: add all genres
-cgenres_names= {"black": "Black Metal"} # TODO
+coarse_genres = {
+   "black", "death", "doom",
+   "electronic", "avantgarde", "folk",
+   "gothic", "grind", "groove",
+   "heavy", "metalcore", "power",
+   "prog", "speed", "orchestral",
+   "thrash"
+}
 
 results =  {}
 
 for c in coarse_genres:
-   cname = cgenres_names[c]
    url = "https://www.metal-archives.com/browse/ajax-genre/g/"+c+"/json/1"
 
    results[c] = {}
@@ -19,7 +25,7 @@ for c in coarse_genres:
    headers =  {
       "Accept": "application/json",
       "User-Agent": "metal-is-love",
-      "Accept-Encoding": urllib3.util.SKIP_HEADER 
+      "Accept-Encoding": urllib3.util.SKIP_HEADER
    }
    params = { "sEcho": "test" }
    pre = requests.get(url, params=params, headers=headers)
@@ -34,12 +40,12 @@ for c in coarse_genres:
 
       if page.status_code == 200:
          bands = page.json().get("aaData")
-         #print(bands[1])
          if bands:
             for b in bands:
-                #print(b[2]) #genre
-                genres = b[2].replace("(early)", "").replace("(later)", "").replace("(mid)", "")
-                genres = genres.split('/')
+                genres = b[2].replace("(early)", "").replace("(early", "").replace("early)", "")
+                genres = genres.replace("(mid)", "").replace("(mid", "").replace("mid)", "")
+                genres = genres.replace("(later)", "").replace("(later", "").replace("later)", "")
+                genres = re.split('[/,;]', genres)
                 for g in genres:
                    if results[c].get(g) is not None:
                       results[c][g] = results[c][g] + 1
@@ -50,8 +56,7 @@ for c in coarse_genres:
          print("status returned: ", page.status_code)
          break
 
-      print("parsed ", offset+500, " bands, of those ", results[c].get(cname), " are basic")
+      #print("[", c, "]: parsed ", offset+500, " bands and ", len(results[c]), " associated genres found")
       time.sleep(1)
 
 print(results)
-#print('Done!')
